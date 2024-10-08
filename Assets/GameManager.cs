@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using Random = System.Random;
 
 public class GameManager : MonoBehaviour
 {
@@ -14,12 +15,22 @@ public class GameManager : MonoBehaviour
     
     [SerializeField] private Button peasantButton;
     [SerializeField] private Button warriorButton;
+    [SerializeField] private Button peasantToWarrior;
+    [SerializeField] private Button pauseButton;
 
     [SerializeField] private Text resourcePeasantText;
     [SerializeField] private Text resourceWarriorText;
     [SerializeField] private Text resourceWheatText;
+    [SerializeField] private Text enemyCount;
+
+    [SerializeField] private Text survivedCountText;
+    private int survivedCount;
+    [SerializeField] private Text wheatCreditText;
+    private int wheatCredit;
+    [SerializeField] private GameObject warriorLeaveText;
 
     [SerializeField] private GameObject gameOverScreen;
+    [SerializeField] private GameObject rulesScreen;
 
     [SerializeField] private int peasantCount;
     [SerializeField] private int warriorCount;
@@ -37,6 +48,9 @@ public class GameManager : MonoBehaviour
     private float peasantTime = -2;
     private float warriorTime = -2;
     private float raidTime;
+    private float twoSecond;
+    private Random random = new Random();
+    
 
     // Start is called before the first frame update
     void Start()
@@ -48,14 +62,57 @@ public class GameManager : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        twoSecond += Time.deltaTime;
+        if (twoSecond >= 2)
+        {
+            twoSecond = 0;
+            resourceWheatText.color = Color.black;
+            resourcePeasantText.color = Color.black;
+
+            if (wheatCredit != 0 && wheatCount != 0)
+            {
+                resourceWheatText.text = $"Пшеницы: {--wheatCount}";
+                wheatCreditText.text = $"Воины хотят есть :\n{--wheatCredit} пшениц";
+            }
+
+            if (wheatCredit >= 10)
+            {
+                wheatCredit -= 10;
+                warriorCount -= 1;
+                warriorLeaveText.SetActive(true);
+            }
+            else
+            {
+                warriorLeaveText.SetActive(false);
+            }
+        }
+
         raidTime -= Time.deltaTime;
         raidTimerImg.fillAmount = raidTime / raidMaxTime;
 
         if (raidTime <= 0)
         {
+            for (int i = 0; i < nextRaid; i++)
+            {
+                if (random.Next(2) == 1)
+                {
+                    --warriorCount;
+                }
+            }
+            
             raidTime = raidMaxTime;
-            warriorCount -= nextRaid;
-            nextRaid += raidIncrease;
+            //warriorCount -= nextRaid;
+            nextRaid += raidIncrease;            
+            ++survivedCount;
+
+            if (survivedCount >= 10)
+            {
+                survivedCountText.text = "Последний цикл";
+            }
+            else
+            {
+                survivedCountText.text = $"Циклов: {survivedCount}";
+            }
         }
 
         if (harvestTimer.Tick)
@@ -65,7 +122,16 @@ public class GameManager : MonoBehaviour
 
         if (eatTimer.Tick)
         {
-            wheatCount -= warriorCount * wheatToWarrior;
+            if ((wheatCount - (warriorCount * wheatToWarrior)) <= 0)
+            {
+                wheatCredit += Mathf.Abs(wheatCount - (warriorCount * wheatToWarrior));
+                wheatCreditText.text = $"Воины хотят есть :\n{wheatCredit} пшениц";
+                //wheatCount = 0;
+            }
+            else
+            {
+                wheatCount -= warriorCount * wheatToWarrior;
+            }                   
         }
 
         if (peasantTime > 0)
@@ -94,27 +160,80 @@ public class GameManager : MonoBehaviour
             warriorTime = -2;
         }
 
-        UpdateText();
-    
+        UpdateText();     
+
+        if (survivedCount > 10)
+        {
+            Time.timeScale = 0;
+            gameOverScreen.SetActive(true);
+        }
+        
         if (warriorCount < 0)
         {
             Time.timeScale = 0;
+            resourceWarriorText.text = $"Оставшиеся варвары: {Mathf.Abs(warriorCount)}";
             gameOverScreen.SetActive(true);
         }
     }
 
     public void CreatePeasant()
     {
-        wheatCount -= peasantCost;
-        peasantTime = peasantCreateTime;
-        peasantButton.interactable = false;
+        //wheatCount -= peasantCost;
+        
+        if (wheatCount - peasantCost <= 0)
+        {
+            resourceWheatText.color = Color.red;
+        }
+        else
+        {
+            wheatCount -= peasantCost;
+            peasantTime = peasantCreateTime;
+            peasantButton.interactable = false;
+        }
     }
 
     public void CreateWarrior()
     {
-        wheatCount -= warriorCost;
-        warriorTime = warriorCreateTime;
-        warriorButton.interactable = false;
+        //wheatCount -= warriorCost;
+
+        if (wheatCount - warriorCost <= 0)
+        {
+            resourceWheatText.color = Color.red;
+            //wheatCount += warriorCost;
+        }
+        else
+        {
+            wheatCount -= warriorCost;
+            warriorTime = warriorCreateTime;
+            warriorButton.interactable = false;
+        }     
+    }
+
+    public void ConvertToWarrior()
+    {
+        if (peasantCount - 10 >= 0)
+        {
+            peasantCount -= 10;
+            warriorCount += 1;
+        }
+        else
+        {
+            resourcePeasantText.color = Color.red;
+        }
+    }
+
+    public void Pause()
+    {
+        if (Time.timeScale == 0)
+        {
+            rulesScreen.SetActive(false);
+            Time.timeScale = 1;
+        }
+        else
+        {
+            rulesScreen.SetActive(true);
+            Time.timeScale = 0;
+        }
     }
 
     private void UpdateText()
@@ -122,5 +241,15 @@ public class GameManager : MonoBehaviour
         resourcePeasantText.text = $"Крестиан: {peasantCount}";
         resourceWarriorText.text = $"Воинов: {warriorCount}";
         resourceWheatText.text = $"Пшеницы :{wheatCount}";
+        enemyCount.text = $"Количество врагов в следующем набеге {nextRaid}";
+
+        if (wheatCredit > 0)
+        {
+            wheatCreditText.text = $"Воины хотят есть :\n{wheatCredit} пшениц";
+        }
+        else
+        {
+            wheatCreditText.text = $"";
+        }
     }
 }
