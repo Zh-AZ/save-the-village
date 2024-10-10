@@ -17,6 +17,8 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Button warriorButton;
     [SerializeField] private Button peasantToWarrior;
     [SerializeField] private Button pauseButton;
+    [SerializeField] private Button changeSoundPlayButton;
+    [SerializeField] private Button changeSoundButton;
 
     [SerializeField] private Text resourcePeasantText;
     [SerializeField] private Text resourceWarriorText;
@@ -31,6 +33,12 @@ public class GameManager : MonoBehaviour
 
     [SerializeField] private GameObject gameOverScreen;
     [SerializeField] private GameObject rulesScreen;
+
+    private new AudioSource audio;
+    [SerializeField] private AudioClip clip_1;
+    [SerializeField] private AudioClip clip_2;
+    [SerializeField] private AudioClip buttonSound;
+    private AudioSource audioButtons;
 
     [SerializeField] private int peasantCount;
     [SerializeField] private int warriorCount;
@@ -57,6 +65,7 @@ public class GameManager : MonoBehaviour
     {
         UpdateText();
         raidTime = raidMaxTime;
+        audio = GetComponent<AudioSource>();
     }
 
     // Update is called once per frame
@@ -176,10 +185,19 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    private void GetButtonsSound(AudioSource source)
+    {
+        //audioButtons = peasantButton.GetComponent<AudioSource>();
+        audioButtons = source;
+        audioButtons.clip = buttonSound;
+        audioButtons.Play();
+    }
+
     public void CreatePeasant()
     {
         //wheatCount -= peasantCost;
-        
+        GetButtonsSound(peasantButton.GetComponent<AudioSource>());
+
         if (wheatCount - peasantCost <= 0)
         {
             resourceWheatText.color = Color.red;
@@ -194,7 +212,7 @@ public class GameManager : MonoBehaviour
 
     public void CreateWarrior()
     {
-        //wheatCount -= warriorCost;
+        GetButtonsSound(warriorButton.GetComponent<AudioSource>());
 
         if (wheatCount - warriorCost <= 0)
         {
@@ -211,6 +229,8 @@ public class GameManager : MonoBehaviour
 
     public void ConvertToWarrior()
     {
+        GetButtonsSound(peasantToWarrior.GetComponent<AudioSource>());
+
         if (peasantCount - 10 >= 0)
         {
             peasantCount -= 10;
@@ -224,16 +244,42 @@ public class GameManager : MonoBehaviour
 
     public void Pause()
     {
+        GetButtonsSound(pauseButton.GetComponent<AudioSource>());
+
         if (Time.timeScale == 0)
         {
             rulesScreen.SetActive(false);
+            audio.clip = clip_2;
+            audio.Play();
             Time.timeScale = 1;
         }
         else
         {
             rulesScreen.SetActive(true);
+            audio.clip = clip_1;
+            audio.Play();
             Time.timeScale = 0;
         }
+    }
+
+    public void ChangeSoundPlay()
+    {
+        GetButtonsSound(changeSoundPlayButton.GetComponent<AudioSource>());
+
+        if (audio.isPlaying)
+        {
+            audio.Pause();
+        }
+        else
+        {
+            audio.Play();
+        }
+    }
+
+    public void ChangeSound()
+    {
+        GetButtonsSound(changeSoundButton.GetComponent<AudioSource>());
+        audio.clip = clip_1;
     }
 
     private void UpdateText()
