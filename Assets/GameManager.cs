@@ -30,14 +30,18 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Text resourceWarriorText;
     [SerializeField] private Text resourceWheatText;
     [SerializeField] private Text enemyCount;
+    [SerializeField] private Text indicatorSpeedText;
 
     [SerializeField] private Text survivedCountText;
-    private int survivedCount;
+    private int raidCount;
     [SerializeField] private Text wheatCreditText;
     private int wheatCredit;
     [SerializeField] private GameObject warriorLeaveText;
 
     [SerializeField] private GameObject gameOverScreen;
+    [SerializeField] private Text remainingEnemies;
+    [SerializeField] private GameObject gameWinScreen;
+    [SerializeField] private Text killedWarriors;
     [SerializeField] private GameObject rulesScreen;
 
     private AudioSource backgroundMusic;
@@ -65,6 +69,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float raidMaxTime;
     [SerializeField] private int raidIncrease;
     [SerializeField] private int nextRaid;
+    [SerializeField] private int killedWarriorsCount;
 
     private float peasantTime = -2;
     private float warriorTime = -2;
@@ -119,21 +124,22 @@ public class GameManager : MonoBehaviour
                 if (random.Next(2) == 1)
                 {
                     --warriorCount;
+                    ++killedWarriorsCount;
                 }
             }
             
             raidTime = raidMaxTime;
             //warriorCount -= nextRaid;
             nextRaid += raidIncrease;            
-            ++survivedCount;
+            ++raidCount;
 
-            if (survivedCount >= 10)
+            if (raidCount >= 10)
             {
                 survivedCountText.text = "Последний рейд!";
             }
             else
             {
-                survivedCountText.text = $"Рейд: {survivedCount}";
+                survivedCountText.text = $"Рейд: {raidCount}";
             }
             //GetButtonsSound(raidTimerImg.GetComponent<AudioSource>());
 
@@ -205,16 +211,18 @@ public class GameManager : MonoBehaviour
 
         UpdateText();     
 
-        if (survivedCount > 10)
+        if (raidCount > 10)
         {
             Time.timeScale = 0;
-            gameOverScreen.SetActive(true);
+            gameWinScreen.SetActive(true);
+            killedWarriors.text = $"Ценою {killedWarriorsCount} воинов";
         }
         
         if (warriorCount < 0)
         {
             Time.timeScale = 0;
-            resourceWarriorText.text = $"Оставшиеся варвары: {Mathf.Abs(warriorCount)}";
+            remainingEnemies.text = $"Оставшиеся варвары: {Mathf.Abs(warriorCount)}";
+            resourceWarriorText.text = $"Воинов: {0}";
             gameOverScreen.SetActive(true);
         }
     }
@@ -327,6 +335,20 @@ public class GameManager : MonoBehaviour
         {
             backgroundMusic.Play();
             changeSoundPlayButton.image.color = Color.white;
+        }
+    }
+
+    public void SpeedUpTime()
+    {
+        if (Time.timeScale == 1)
+        {
+            Time.timeScale = 2;
+            indicatorSpeedText.text = "x2";
+        }
+        else
+        {
+            Time.timeScale = 1;
+            indicatorSpeedText.text = "x1";
         }
     }
 
