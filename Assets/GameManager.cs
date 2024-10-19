@@ -1,3 +1,4 @@
+using Assets;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -17,14 +18,14 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Image warriorTimerImg;
     [SerializeField] private Image harvestTimerImg;
     [SerializeField] private Image eatTimerImg;
-    [SerializeField] private Image ResumeButtonImg;
+    [SerializeField] private Image resumeButtonImg;
 
     [SerializeField] private Button peasantButton;
     [SerializeField] private Button warriorButton;
     [SerializeField] private Button peasantToWarrior;
     [SerializeField] private Button pauseButton;
     [SerializeField] private Button changeSoundPlayButton;
-    //[SerializeField] private Button changeSoundButton;
+    [SerializeField] private Button speedUpButton;
 
     [SerializeField] private Text resourcePeasantText;
     [SerializeField] private Text resourceWarriorText;
@@ -47,6 +48,8 @@ public class GameManager : MonoBehaviour
     private AudioSource backgroundMusic;
     [SerializeField] private AudioClip clip_1;
     [SerializeField] private AudioClip clip_2;
+    [SerializeField] private AudioClip losingMusic;
+    [SerializeField] private AudioClip winMusic;
     [SerializeField] private AudioClip buttonSound;
     [SerializeField] private AudioClip buttonErrorSound;
     private AudioSource audioButtons;
@@ -69,7 +72,7 @@ public class GameManager : MonoBehaviour
     [SerializeField] private float raidMaxTime;
     [SerializeField] private int raidIncrease;
     [SerializeField] private int nextRaid;
-    [SerializeField] private int killedWarriorsCount;
+    private int killedWarriorsCount;
 
     private float peasantTime = -2;
     private float warriorTime = -2;
@@ -90,6 +93,7 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         twoSecond += Time.deltaTime;
+
         if (twoSecond >= 2)
         {
             twoSecond = 0;
@@ -113,7 +117,7 @@ public class GameManager : MonoBehaviour
                 warriorLeaveText.SetActive(false);
             }
         }
-
+        
         raidTime -= Time.deltaTime;
         raidTimerImg.fillAmount = raidTime / raidMaxTime;
 
@@ -129,32 +133,21 @@ public class GameManager : MonoBehaviour
             }
             
             raidTime = raidMaxTime;
-            //warriorCount -= nextRaid;
             nextRaid += raidIncrease;            
             ++raidCount;
 
             if (raidCount >= 10)
-            {
                 survivedCountText.text = "Последний рейд!";
-            }
             else
-            {
                 survivedCountText.text = $"Рейд: {raidCount}";
-            }
-            //GetButtonsSound(raidTimerImg.GetComponent<AudioSource>());
 
-            audioButtons = raidTimerImg.GetComponent<AudioSource>();
-            audioButtons.clip = raidSound;
-            audioButtons.Play();
+            SoundProduction(raidTimerImg, raidSound);
         }
 
         if (harvestTimer.Tick)
         {
             wheatCount += peasantCount * wheatPerPeasant;
-            //GetButtonsSound(harvestTimerImg.GetComponent<AudioSource>());
-            audioButtons = harvestTimerImg.GetComponent<AudioSource>();
-            audioButtons.clip = harvestSound;
-            audioButtons.Play();
+            SoundProduction(harvestTimerImg, harvestSound);
         }
 
         if (eatTimer.Tick)
@@ -163,15 +156,11 @@ public class GameManager : MonoBehaviour
             {
                 wheatCredit += Mathf.Abs(wheatCount - (warriorCount * wheatToWarrior));
                 wheatCreditText.text = $"Воины хотят есть :\n{wheatCredit} пшениц";
-                //wheatCount = 0;
             }
             else
             {
                 wheatCount -= warriorCount * wheatToWarrior;
-                //GetButtonsSound(eatTimerImg.GetComponent<AudioSource>());
-                audioButtons = eatTimerImg.GetComponent<AudioSource>();
-                audioButtons.clip = eatSound;
-                audioButtons.Play();
+                SoundProduction(eatTimerImg, eatSound);
             }                   
         }
 
@@ -186,10 +175,7 @@ public class GameManager : MonoBehaviour
             peasantButton.interactable = true;
             ++peasantCount;
             peasantTime = -2;
-            //GetButtonsSound(peasantTimerImg.GetComponent<AudioSource>());
-            audioButtons = peasantTimerImg.GetComponent<AudioSource>();
-            audioButtons.clip = peasantCreateSound;
-            audioButtons.Play();
+            SoundProduction(peasantTimerImg, peasantCreateSound);
         }
 
         if (warriorTime > 0)
@@ -203,23 +189,24 @@ public class GameManager : MonoBehaviour
             warriorButton.interactable = true;
             ++warriorCount;
             warriorTime = -2;
-            //GetButtonsSound(warriorTimerImg.GetComponent<AudioSource>());
-            audioButtons = warriorTimerImg.GetComponent<AudioSource>();
-            audioButtons.clip = warriorCreateSound;
-            audioButtons.Play();
+            SoundProduction(warriorTimerImg, warriorCreateSound);
         }
 
         UpdateText();     
 
         if (raidCount > 10)
         {
+            backgroundMusic.clip = winMusic;
+            backgroundMusic.Play();
             Time.timeScale = 0;
             gameWinScreen.SetActive(true);
-            killedWarriors.text = $"Ценою {killedWarriorsCount} воинов";
+            killedWarriors.text = $"Ценою {killedWarriorsCount} воинов";            
         }
         
         if (warriorCount < 0)
         {
+            backgroundMusic.clip = losingMusic;
+            backgroundMusic.Play();
             Time.timeScale = 0;
             remainingEnemies.text = $"Оставшиеся варвары: {Mathf.Abs(warriorCount)}";
             resourceWarriorText.text = $"Воинов: {0}";
@@ -227,17 +214,32 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Звуки таймеров и событий
+    /// </summary>
+    /// <param name="image"></param>
+    /// <param name="audioClip"></param>
+    private void SoundProduction(Image image, AudioClip audioClip)
+    {
+        audioButtons = image.GetComponent<AudioSource>();
+        audioButtons.clip = audioClip;
+        audioButtons.Play();
+    }
+
+    /// <summary>
+    /// Соответствующие звуки кнопок
+    /// </summary>
+    /// <param name="source"></param>
+    /// <param name="isError"></param>
     private void GetButtonsSound(AudioSource source, bool isError = false)
     {
         audioButtons = source;
+        
         if (isError)
-        {
             audioButtons.clip = buttonErrorSound;
-        }
         else
-        {
             audioButtons.clip = buttonSound;
-        }
+    
         audioButtons.Play();
     }
 
@@ -261,13 +263,10 @@ public class GameManager : MonoBehaviour
 
     public void CreateWarrior()
     {
-        //GetButtonsSound(warriorButton.GetComponent<AudioSource>());
-
         if (wheatCount - warriorCost <= 0)
         {
             resourceWheatText.color = Color.red;
             isError= true;
-            //wheatCount += warriorCost;
         }
         else
         {
@@ -280,10 +279,11 @@ public class GameManager : MonoBehaviour
         GetButtonsSound(warriorButton.GetComponent<AudioSource>(), isError);
     }
 
+    /// <summary>
+    /// Перевести 10 крестьян к 1 воину
+    /// </summary>
     public void ConvertToWarrior()
     {
-        //GetButtonsSound(peasantToWarrior.GetComponent<AudioSource>());
-
         if (peasantCount - 10 >= 0)
         {
             peasantCount -= 10;
@@ -303,13 +303,12 @@ public class GameManager : MonoBehaviour
     {
         GetButtonsSound(pauseButton.GetComponent<AudioSource>());
         
-
         if (Time.timeScale == 0)
         {
             rulesScreen.SetActive(false);
             backgroundMusic.clip = clip_2;
             backgroundMusic.Play();
-            ResumeButtonImg.sprite = pauseSprite;
+            resumeButtonImg.sprite = pauseSprite;
             Time.timeScale = 1;
         }
         else
@@ -317,7 +316,7 @@ public class GameManager : MonoBehaviour
             rulesScreen.SetActive(true);
             backgroundMusic.clip = clip_1;
             backgroundMusic.Play();
-            ResumeButtonImg.sprite = resumeSprite;
+            resumeButtonImg.sprite = resumeSprite;
             Time.timeScale = 0;
         }
     }
@@ -340,6 +339,8 @@ public class GameManager : MonoBehaviour
 
     public void SpeedUpTime()
     {
+        GetButtonsSound(speedUpButton.GetComponent<AudioSource>());
+        
         if (Time.timeScale == 1)
         {
             Time.timeScale = 2;
@@ -352,33 +353,16 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    // No use
-    //public void ChangeSound()
-    //{
-    //    //GetButtonsSound(changeSoundButton.GetComponent<AudioSource>());
-    //    changeSoundButton.GetComponent<AudioSource>();
-    //    backgroundMusic.clip = clip_1;
-    //}
-
     private void UpdateText()
     {
-        //resourcePeasantText.text = $"<color=#98702E>Крестиан: {peasantCount}</color>";
-        //resourceWarriorText.text = $"<color=#434343>Воинов: {warriorCount}</color>";
-        //resourceWheatText.text = $"<color=#E9B165>Пшеницы :{wheatCount} </color>";
-
-        resourcePeasantText.text = $"Крестиан: {peasantCount}";
+        resourcePeasantText.text = $"Крестьян: {peasantCount}";
         resourceWarriorText.text = $"Воинов: {warriorCount}";
         resourceWheatText.text = $"Пшеницы: {wheatCount}";
-
         enemyCount.text = $"Количество врагов в следующем набеге: <color=\"red\">{nextRaid}</color>";
 
         if (wheatCredit > 0)
-        {
             wheatCreditText.text = $"Воины хотят есть :\n{wheatCredit} пшениц";
-        }
         else
-        {
             wheatCreditText.text = $"";
-        }
     }
 }
